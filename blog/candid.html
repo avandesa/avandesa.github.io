@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>
+			Announcing CANdid | Alex van de Sandt
+		</title>
+		<link rel="icon" type="image/png" href="../favicon-32x32.png" sizes="32x32" />
+		<link rel="stylesheet" type="text/css" href="../globalstyle.css">
+	</head>
+
+	<body>
+		<h1>Alex van de Sandt (avandesa)</h1>
+
+		<div>
+			<a target="_blank" rel="noopener noreferrer" href="https://github.com/avandesa"><img src="../img/github.png" width=40px height=40px></a>
+			<a target="_blank" rel="noopener noreferrer" href="https://gitlab.com/avandesa"><img src="../img/gitlab.png" width=40px height=40px></a>
+			<a target="_blank" rel="noopener noreferrer" href="https://twitter.com/alexvds17"><img src="../img/twitter.png" width=40px height=40px></a>
+			<a href="mailto:avandesa@purdue.edu"><img src="../img/mail.png" width=40px height=40px></a>
+		</div>
+
+		<div>
+			<h2>Announcing CANdid: Tools for TCP transmission of Controller Area Network (CAN) messages</h2>
+			2019-04-15
+			<ul>
+				<li> Repository on gitlab: <a target="_blank" rel="noopener noreferrer" href="https://gitlab.com/avandesa/candid-rs">https://gitlab.com/avandesa/candid-rs</a> </li>
+				<li> Server Crate: <a target="_blank" rel="noopener noreferrer" href="https://crates.io/crates/candid_server">https://crates.io/crates/candid_server</a> </li>
+				<li> Server Documentation: <a target="_blank" rel="noopener noreferrer" href="https://docs.rs/crate/candid_server/">https://docs.rs/crate/candid_server/</a> </li>
+				<li> Client Crate: <a target="_blank" rel="noopener noreferrer" href="https://crates.io/crates/candid_client">https://crates.io/crates/candid_client</a> </li>
+				<li> Client Documentation: <a target="_blank" rel="noopener noreferrer" href="https://docs.rs/crate/candid_client/">https://docs.rs/crate/candid_client/</a> </li>
+			</ul>
+
+			<h3>What is CANdid?</h3>
+			<p>
+			As the title says, CANdid is a tool for transmitting CAN bus messages to remote clients over the network. Currently, it is composed of a server application and a client library, but a tui is in the works and an early version will be published soon. The server and client library have been up for a few months each, but I'm only now at the point where I'm willing to showcase the project. <a target="_blank" rel="noopener noreferrer" href="https://www.rust-lang.org">It is built using Rust</a>, a systems programming language that tries to achieve fast speeds and memory saftey.
+			</p>
+
+			<h3>Why make CANdid?</h3>
+			<p>
+			I am a member of the Electronics team of Purdue Formula SAE. Our wiring harness is currently powered for the most part by MoTeC, and the only way we can currently interface with any of our sensors is through proprietary, windows-only software. The goal of CANdid is to make it easier to view, log, and interact with the various sensors and electronics on the race car. Instead of relying on converters that can cost hundreds of dollars, multiple team members will be able to interact with the car synchronously and independently of each other.
+			</p>
+
+			<h3>How does it work?</h3>
+			<p>
+			CANdid's server component is primarily powered by <a target="_blank" rel="noopener noreferrer" href="https://crates.io/crates/socketcan">socketcan-rs</a>, a wrapper for Linux's SocketCAN kernel module. <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/SocketCAN">SocketCAN</a> does two things: provides a set of drivers for common CAN device architectures, and provides an api to interact with CAN bus devices like you would a regular network socket.
+			</p>
+			<p>
+			CANdid server spawns one thread for reading from the CAN socket and two threads for each connected client. The CAN-reading thread sends each frame read to one of the threads for each client. That client thread then sends the frame over the network. The other client thread has its own copy of the CAN socket. When it receives a frame from the client, it checks that the frame is valid, then writes it directly to the CAN bus.
+			</p>
+
+			<h3>How do I use it?</h3>
+			<p>
+			Instructions for setting up a server and client are available in their crates.io pages, their docs.rs pages, and their respective folders in the monorepo.
+			</p>
+			<p>
+			I currently use CANdid by running the server on a <a target="_blank" rel="noopener noreferrer" href="https://www.raspberrypi.org/">Raspberry Pi</a> with a <a target="_blank" rel="noopener noreferrer" href="http://skpang.co.uk/catalog/pican2-canbus-board-for-raspberry-pi-23-p-1475.html">PiCAN2 bus board</a>. After wiring the board to into the CAN bus, I ssh into the pi to start up the server, then simply connect over the network from my laptop. So far, I've used it to test out an accelerometer that we're trying to integrate into our telemetry. While CANdid alone is far from sufficient (for now), it was useful in debugging the sensor's connection to the rest of the network.
+			</p>
+
+			<h3>What's next for CANdid?</h3>
+			<ul>
+				<li>Finishing the terminal interface. It's not yet published on crates.io, but it is available in the repository in the candid_tui folder. I'm using <a target="_blank" rel="noopener noreferrer" href="https://crates.io/crates/tui">tui-rs</a> with a <a target="_blank" rel="noopener noreferrer" href="https://crates.io/crates/termion">termion</a> backend. It'll be awhile before I'm really happy with it.</li>
+				<li>More advanced CAN features. Currently, CANdid only supports standard CAN frames. I need to add support for error frames and filters, extended-format frames, as well as sanity checks on frames received from clients</li>
+				<li>Support for multiple buses. This will require a wrapper around SocketCAN frames for transmission and a more robust protocol, but can potentially be useful for more complex setups.</li>
+				<li>Support for different types of messages. It may be helpful to enable filters at runtime, or have other client-server commands and status messages.</li>
+				<li>Logging, for both the client and the server</li>
+				<li>Authentication. This data can be sensitive, and you want to avoid interference</li>
+				<li>Encryption? If clients are authenticating, might as well</li>
+				<li>There are a few bugs and panics in the server that need to be identified and fixed. There's also some ungraceful exit conditions on both sides.</li>
+			</ul>
+
+			<p>
+			Though I doub't this tool is super useful for anyone else right now, I'm always open to any feedback, feature requests, and pull requests. Code reviews and harsh criticsm are appreciated too. I can be reached via any method at the top of this page
+			</p>
+		</div>
+	</body>
+</html>
